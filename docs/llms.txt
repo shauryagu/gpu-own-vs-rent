@@ -1,0 +1,76 @@
+# llms.txt — curated external references
+
+> Not a site index (llms.txt's original convention) — a maintained link list
+> for this repo. Referenced from AGENTS.md; not loaded by default. Update
+> this file, not AGENTS.md, when a new source or doc link is added.
+
+## Papers (full text lives in docs/source/*.md as trimmed extracts — these
+## are the canonical citations, use them in write-ups, not the local copy)
+
+- Bandi & Su, "(Early) AI Compute Asset Pricing" — arXiv:2607.12156 (July 2026)
+  https://arxiv.org/abs/2607.12156
+  Local extract: docs/source/AiComputeAssetPricing.md
+  Use for: no-arbitrage pricing of compute futures, synthetic futures
+  construction, risk premium framework.
+
+- Talluri & van Ryzin, "An Analysis of Bid-Price Controls for Network Revenue
+  Management" — Management Science 44(11), Nov 1998
+  Local extract: docs/source/network_revenue_management.md
+  Use for: network/bundle bid formulation, why bid-price control is
+  non-optimal, DLP, stranding cost.
+
+- van Ryzin & Talluri, "An Introduction to Revenue Management" — INFORMS
+  TutORials in Operations Research, 2005/reissued 2014
+  Local extract: docs/source/van-ryzin-talluri-2014-an-introduction-to-revenue-management.md
+  Use for: single-resource displacement cost, bid-price vocabulary, dynamic
+  model Bellman formulation.
+
+- Ornn, "The Basis Gap in Compute Acquisition Structures" (vocabulary source,
+  not separately extracted — read directly if needed)
+
+- a16z crypto, "Investing in Ornn" (thesis framing, not separately extracted)
+
+- Littlewood (1972) — two-class marginal seat revenue, not separately
+  extracted; short enough to read directly when needed.
+
+- Schwartz (1997), "The Stochastic Behavior of Commodity Prices" —
+  one-factor mean-reverting model. Not extracted; needed for Day 2 price-
+  process work.
+
+- Lucia & Schwartz (2002) — mean reversion plus jumps, fit to Nordic power.
+  Not extracted; needed for Day 2 price-process work.
+
+## Data sources — free tier only, per AGENTS.md non-negotiables
+
+- Ornn OCPI free tier — https://api.ornnai.com (no key; 3mo daily, 5 GPU
+  types; hourly current-price updates). Primary compute price series.
+- PJM Data Miner 2 — https://dataminer2.pjm.com (free, registration only).
+  Estimator validation set (known mean-reverting-with-spikes reference).
+- CAISO OASIS — free. Alternate/secondary LMP source.
+- AWS EC2 Spot price history — free with AWS account
+  (`describe-spot-price-history`). Cross-zone dispersion = empirical basis
+  proxy.
+- AWS Price List API — free, public. On-demand + 1yr + 3yr reserved rates;
+  synthetic forward curve input (Bandi & Su construction).
+- CoreWeave SEC filings — https://www.sec.gov/edgar (EDGAR, free). Cost-basis
+  range from depreciation schedules and utilization commentary.
+- Public provider price pages — Vast.ai, RunPod, Lambda. Second basis-error
+  measurement (cross-provider dispersion, identical hardware).
+- Epoch AI GPU dataset — open. H100-equivalent conversion factors.
+
+Explicitly excluded (do not integrate, even if convenient):
+Ornn's paid historical tier, Silicon Data term curves, any private venue data.
+
+## Institutional / methodology references (write-up material, Day 7)
+
+- PJM LMP and hub overview — market-clearing-produced benchmark analogue.
+- FERC Order 888 — institutional-sequencing analogue for compute market maturation.
+- S&P/Case-Shiller methodology doc — hedonic index worked example (GPU
+  heterogeneity analogue).
+- IOSCO Principles for Financial Benchmarks — index-construction grounding.
+
+## Tooling / agent docs
+
+- Claude Code best practices — https://code.claude.com/docs/en/best-practices
+- Claude Code memory — https://code.claude.com/docs/en/memory
+- AGENTS.md spec — https://agents.md
