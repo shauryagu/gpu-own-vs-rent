@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.chi.ocpi-hourly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__CHI_BIN__</string>
+    <string>collect</string>
+    <string>--data-dir</string>
+    <string>__DATA_DIR__</string>
+    <string>--series</string>
+    <string>current</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO_ROOT__</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Minute</key>
+    <integer>5</integer>
+  </dict>
+  <key>KeepAlive</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>__DATA_DIR__/collect.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>__DATA_DIR__/collect.stderr.log</string>
+</dict>
+</plist>
