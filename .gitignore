@@ -5,3 +5,4 @@
 /data/ocpi-hourly.jsonl
 .venv/
 .serena/
+.worktrees/
