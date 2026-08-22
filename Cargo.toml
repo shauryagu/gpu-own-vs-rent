@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["crates/domain", "crates/ingest", "crates/chi_log", "crates/project", "crates/chi"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"

@@ -1,7 +1,7 @@
 /target
 **/*.rs.bk
 .DS_Store
-data/raw/
-data/*.jsonl
+/data/raw/
+/data/ocpi-hourly.jsonl
 .venv/
 .serena/
