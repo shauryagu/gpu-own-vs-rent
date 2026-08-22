@@ -242,6 +242,7 @@ version = "0.1.0"
 dependencies = [
  "rust_decimal",
  "serde",
+ "serde_json",
  "thiserror",
  "time",
 ]
