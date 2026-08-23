@@ -6,3 +6,15 @@ license.workspace = true
 
 [dependencies]
 domain = { path = "../domain" }
+reqwest = { version = "0.13.4", features = ["blocking"] }
+rust_decimal = "1.42.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["arbitrary_precision"] }
+sha2 = "0.11.0"
+thiserror = "2.0.20"
+time = "0.3.55"
+
+[dev-dependencies]
+serde_json = { version = "1.0.151", features = ["arbitrary_precision"] }
+tempfile = "3.27.0"
+time = "0.3.55"
