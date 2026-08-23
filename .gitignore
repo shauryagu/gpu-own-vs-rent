@@ -3,6 +3,9 @@
 .DS_Store
 /data/raw/
 /data/ocpi-hourly.jsonl
+/data/collect.lock
+/data/collect.stdout.log
+/data/collect.stderr.log
 .venv/
 .serena/
 .worktrees/
