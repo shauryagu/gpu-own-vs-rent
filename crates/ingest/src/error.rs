@@ -20,6 +20,10 @@ pub enum IngestError {
     Io(#[from] std::io::Error),
     #[error("empty gpu-types-free list")]
     EmptyGpuList,
+    #[error("collect already running")]
+    AlreadyRunning,
+    #[error("ocpi current gpu_name {got:?} does not match requested {expected:?}")]
+    GpuNameMismatch { expected: String, got: String },
     #[error("collect failed for {count} gpu(s): {detail}")]
     CollectFailed { count: usize, detail: String },
 }

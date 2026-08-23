@@ -113,6 +113,7 @@ pub fn collect_current(
     http: &impl HttpGet,
     cache: &RawCache,
 ) -> Result<(), IngestError> {
+    let _lock = cache.try_lock()?;
     let types_response = http.get(GPU_TYPES_FREE_URL)?;
     let types_path = cache.write_gpu_types_free(now, &types_response.bytes)?;
     log_attempt(
@@ -197,6 +198,20 @@ fn collect_one_gpu(
             return Err(err);
         }
     };
+    if quote.gpu_name != gpu_name {
+        log_attempt(
+            now,
+            gpu_name,
+            response.status,
+            response.bytes.len(),
+            &raw_path,
+            false,
+        );
+        return Err(IngestError::GpuNameMismatch {
+            expected: gpu_name.to_string(),
+            got: quote.gpu_name,
+        });
+    }
     if let Err(err) = append_hourly(now, cache, gpu_name, &quote, &response, &raw_path) {
         log_attempt(
             now,

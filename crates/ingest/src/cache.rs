@@ -1,4 +1,4 @@
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -28,6 +28,11 @@ impl RawCache {
 
     pub fn pause(&self) -> Duration {
         self.pause
+    }
+
+    /// Exclusive lock for the lifetime of one collect. Kernel-released on crash.
+    pub fn try_lock(&self) -> Result<CollectLock, IngestError> {
+        CollectLock::acquire(&self.data_dir)
     }
 
     pub fn write_gpu_types_free(
@@ -66,6 +71,7 @@ impl RawCache {
         let mut file = OpenOptions::new().create(true).append(true).open(&path)?;
         file.write_all(line.as_bytes())?;
         file.write_all(b"\n")?;
+        file.sync_all()?;
         Ok(path)
     }
 }
@@ -114,10 +120,43 @@ pub fn json_fetched_at(fetched_at: OffsetDateTime) -> String {
     )
 }
 
+pub struct CollectLock {
+    _file: File,
+}
+
+impl CollectLock {
+    fn acquire(data_dir: &Path) -> Result<Self, IngestError> {
+        fs::create_dir_all(data_dir)?;
+        let path = data_dir.join("collect.lock");
+        let file = OpenOptions::new().create(true).write(true).open(&path)?;
+        match file.try_lock() {
+            Ok(()) => Ok(Self { _file: file }),
+            Err(std::fs::TryLockError::WouldBlock) => Err(IngestError::AlreadyRunning),
+            Err(std::fs::TryLockError::Error(err)) => Err(err.into()),
+        }
+    }
+}
+
 fn write_raw(path: &Path, bytes: &[u8]) -> Result<(), IngestError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(path, bytes)?;
+    let tmp_name = match path.file_name() {
+        Some(name) => {
+            let mut tmp = name.to_os_string();
+            tmp.push(".tmp");
+            tmp
+        }
+        None => {
+            return Err(IngestError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "raw path has no file name",
+            )));
+        }
+    };
+    let tmp_path = path.with_file_name(tmp_name);
+    fs::write(&tmp_path, bytes)?;
+    File::open(&tmp_path)?.sync_all()?;
+    fs::rename(&tmp_path, path)?;
     Ok(())
 }

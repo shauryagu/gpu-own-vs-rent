@@ -132,6 +132,93 @@ fn empty_gpu_types_free_is_error() {
 }
 
 #[test]
+fn current_gpu_name_mismatch_does_not_append_jsonl() {
+    let tmp = tempfile::tempdir().unwrap();
+    let fx = tmp.path().join("fx");
+    write_file(
+        &fx,
+        "gpu-types-free.json",
+        br#"{"success":true,"data":[{"gpu_name":"H100 SXM","region":""}]}"#,
+    );
+    write_file(
+        &fx,
+        "current/H100_SXM.json",
+        br#"{"success":true,"data":{"gpu_name":"B200","region":"","index_value":2.63,"last_updated":"2026-08-22T21:03:21.660Z"}}"#,
+    );
+
+    let cache = cache_for(tmp.path());
+    let http = FixtureHttp::new(&fx);
+    let err = collect_current(frozen_at(0), &http, &cache).unwrap_err();
+    assert!(matches!(err, IngestError::CollectFailed { count: 1, .. }));
+    assert!(
+        jsonl_records(tmp.path()).is_empty(),
+        "mismatched gpu_name must not become an H100 current print"
+    );
+    let raw_dir = tmp.path().join("data/raw/ocpi/current/H100_SXM");
+    assert!(
+        raw_dir.read_dir().unwrap().next().is_some(),
+        "raw body is still cached"
+    );
+}
+
+#[test]
+fn overlapping_collect_fails_without_writing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let data = tmp.path().join("data");
+    fs::create_dir_all(&data).unwrap();
+    let lock_path = data.join("collect.lock");
+    let lock = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&lock_path)
+        .unwrap();
+    lock.lock().expect("hold collect lock");
+
+    let cache = cache_for(tmp.path());
+    let http = FixtureHttp::new(fixtures_dir());
+    let err = collect_current(frozen_at(0), &http, &cache).unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("already running") || msg.contains("lock"),
+        "expected lock failure, got {msg}"
+    );
+    assert!(jsonl_records(tmp.path()).is_empty());
+}
+
+#[test]
+fn successful_raw_write_leaves_no_tmp_sibling() {
+    let tmp = tempfile::tempdir().unwrap();
+    let cache = cache_for(tmp.path());
+    let http = FixtureHttp::new(fixtures_dir());
+    collect_current(frozen_at(0), &http, &cache).unwrap();
+
+    let raw_root = tmp.path().join("data/raw");
+    let mut tmps = Vec::new();
+    visit_tmps(&raw_root, &mut tmps);
+    assert!(tmps.is_empty(), "leftover tmp files: {tmps:?}");
+}
+
+fn visit_tmps(dir: &Path, out: &mut Vec<PathBuf>) {
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+    for entry in entries {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            visit_tmps(&path, out);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("tmp")
+            || path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.ends_with(".tmp"))
+        {
+            out.push(path);
+        }
+    }
+}
+
+#[test]
 fn same_utc_second_writes_distinct_raw_paths() {
     let tmp = tempfile::tempdir().unwrap();
     let cache = cache_for(tmp.path());
