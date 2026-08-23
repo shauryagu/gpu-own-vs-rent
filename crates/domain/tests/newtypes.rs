@@ -81,6 +81,23 @@ fn usd_serde_is_decimal_string_not_json_number() {
 }
 
 #[test]
+fn money_serde_uses_display_scale_not_source_token() {
+    // Domain serde is the printed quantity, not the OCPI ingest wire.
+    // Ingest must keep index_value as token text; invert JSON owns round_dp(12).
+    let rate = UsdPerGpuHour::try_from(dec("2.879583333333333")).expect("S");
+    assert_eq!(
+        serde_json::to_string(&rate).expect("serialize"),
+        "\"2.8796\""
+    );
+
+    let total = Usd::try_from(dec("25.006")).expect("usd");
+    assert_eq!(
+        serde_json::to_string(&total).expect("serialize"),
+        "\"25.01\""
+    );
+}
+
+#[test]
 fn h100_sxm_round_trips_as_h100e_identity() {
     let hours = GpuHour::new(dec("10"));
     let h100e = to_h100e(hours, GpuModel::H100Sxm).expect("H100 SXM is identity");

@@ -148,6 +148,7 @@ impl fmt::Display for UsdPerKwh {
     }
 }
 
+/// Display scale, not a lossless OCPI token. Ingest must not serialize money this way.
 impl Serialize for Usd {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&format_decimal(self.0, 2))
