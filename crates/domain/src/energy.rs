@@ -1,6 +1,6 @@
 //! Energy cost per utilized GPU-hour.
 
-use crate::identity::IdentityError;
+use crate::identity::{rate, IdentityError};
 use crate::money::{UsdPerGpuHour, UsdPerKwh};
 use crate::qty::{Hours, Kilowatt, Pue};
 use rust_decimal::Decimal;
@@ -17,8 +17,7 @@ pub fn energy_per_gpu_hour(
     let kwh = tdp * hour;
     let physics =
         Decimal::from_f64_retain(kwh * pue.get()).ok_or(IdentityError::NonFinitePhysics)?;
-    // TryFrom<Decimal> for UsdPerGpuHour is infallible today.
-    Ok(UsdPerGpuHour::try_from(physics * price.amount()).expect("Decimal money construction"))
+    Ok(rate(physics * price.amount()))
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 //! Discrete NPV identity. No I/O.
 
 use crate::money::{Usd, UsdPerGpuHour};
-use crate::qty::{DiscountRate, GpuHour, Years};
+use crate::qty::{DiscountRate, GpuHour, Utilization, Years};
 use crate::spot::ObservedSpot;
 use crate::theta::{Theta, ThetaExResidual, HOURS_PER_YEAR};
 use rust_decimal::Decimal;
@@ -13,7 +13,8 @@ pub enum IdentityError {
     /// A physics product was NaN or infinite at the `f64` → `Decimal` step.
     #[error("physics quantity is not finite")]
     NonFinitePhysics,
-    /// \( h A = 0 \). Constructors already reject \( u = 0 \) and \( T = 0 \).
+    /// \( h A = 0 \). Unreachable via public constructors (\( T \ge 1 \), \( r \ge 0 \)
+    /// \(\Rightarrow A \ge 1\) or \( A > 0 \); \( u > 0 \)). Fail-closed belt.
     #[error("utilized hours times annuity factor is zero")]
     ZeroAnnuity,
 }
@@ -48,15 +49,38 @@ fn hours_times_annuity(
     life: Years,
 ) -> Result<Decimal, IdentityError> {
     let denom = hours.amount() * annuity_factor(rate, life);
+    // Fail-closed belt: public constructors make A = 0 unreachable (T ≥ 1, r ≥ 0).
     if denom.is_zero() {
         return Err(IdentityError::ZeroAnnuity);
     }
     Ok(denom)
 }
 
+/// \( h = u H \).
+fn utilized_hours(u: Utilization) -> GpuHour {
+    u * HOURS_PER_YEAR
+}
+
+impl ThetaExResidual {
+    /// \( h = u H \).
+    pub fn utilized_hours_per_year(&self) -> Result<GpuHour, IdentityError> {
+        Ok(utilized_hours(self.utilization))
+    }
+}
+
+/// `TryFrom<Decimal>` is infallible today. One wrap so a later check is not a
+/// library `expect` on every identity path, and is not `NonFinitePhysics`.
+pub(crate) fn usd(d: Decimal) -> Usd {
+    Usd::try_from(d).expect("TryFrom<Decimal> for Usd is infallible")
+}
+
+pub(crate) fn rate(d: Decimal) -> UsdPerGpuHour {
+    UsdPerGpuHour::try_from(d).expect("TryFrom<Decimal> for UsdPerGpuHour is infallible")
+}
+
 /// Capital-recovery rent \( F_{\mathrm{capital}} = P / (h A) \). Not a second name for \( F(\theta) \).
 pub fn capital_rent(ex: &ThetaExResidual) -> Result<UsdPerGpuHour, IdentityError> {
-    let hours = ex.utilized_hours_per_year()?;
+    let hours = utilized_hours(ex.utilization);
     let denom = hours_times_annuity(hours, ex.discount, ex.life)?;
     Ok(ex.purchase / GpuHour::new(denom))
 }
@@ -66,33 +90,31 @@ pub fn capital_rent(ex: &ThetaExResidual) -> Result<UsdPerGpuHour, IdentityError
 /// Cash-and-carry fails for a GPU-hour (Bandi & Su §5.1). This is the discrete
 /// NPV identity, not a futures price and not a carry engine.
 pub fn fair_rent(theta: &Theta) -> Result<UsdPerGpuHour, IdentityError> {
-    let hours = theta.utilization * HOURS_PER_YEAR;
+    let hours = utilized_hours(theta.utilization);
     let denom = hours_times_annuity(hours, theta.discount, theta.life)?;
     let grow = one_plus_r_pow_t(theta.discount, theta.life);
     let discounted_salvage = theta.salvage.amount() / grow;
     let capital = (theta.purchase.amount() - discounted_salvage) / denom;
-    Ok(UsdPerGpuHour::try_from(theta.energy.amount() + capital)
-        .expect("Decimal money construction"))
+    Ok(rate(theta.energy.amount() + capital))
 }
 
 /// Implied salvage \( R^{\star}(S) \). USD at year \( T \). Falls with \( S \).
 ///
 /// Negative values are valid. This is not leftover and not clamped.
 pub fn implied_salvage(obs: ObservedSpot, ex: &ThetaExResidual) -> Result<Usd, IdentityError> {
-    let hours = ex.utilized_hours_per_year()?;
+    let hours = utilized_hours(ex.utilization);
     let denom = hours_times_annuity(hours, ex.discount, ex.life)?;
     let grow = one_plus_r_pow_t(ex.discount, ex.life);
     let inner = ex.purchase.amount() - (obs.price.amount() - ex.energy.amount()) * denom;
-    Ok(Usd::try_from(grow * inner).expect("Decimal money construction"))
+    Ok(usd(grow * inner))
 }
 
 /// Leftover \( L(S) = S - F_{\mathrm{capital}} - e \). USD per GPU-hour. Rises with \( S \).
 pub fn leftover(obs: ObservedSpot, ex: &ThetaExResidual) -> Result<UsdPerGpuHour, IdentityError> {
     let capital = capital_rent(ex)?;
-    Ok(
-        UsdPerGpuHour::try_from(obs.price.amount() - capital.amount() - ex.energy.amount())
-            .expect("Decimal money construction"),
-    )
+    Ok(rate(
+        obs.price.amount() - capital.amount() - ex.energy.amount(),
+    ))
 }
 
 #[cfg(test)]
@@ -216,7 +238,7 @@ mod tests {
 
     #[test]
     fn zero_utilization_or_life_is_err_at_construction() {
-        // Invalid u and T are unrepresentable. Identity still fail-closes if hA = 0.
+        // Invalid u and T are unrepresentable. ZeroAnnuity is a belt, not proven here.
         assert!(Utilization::try_new(Decimal::ZERO).is_err());
         assert!(Years::try_new(0).is_err());
     }

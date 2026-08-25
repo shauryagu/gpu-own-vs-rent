@@ -1,6 +1,5 @@
 //! Declared parameter vectors. `Theta` is the forward path; salvage is required.
 
-use crate::identity::IdentityError;
 use crate::money::{Usd, UsdPerGpuHour};
 use crate::qty::{DiscountRate, GpuHour, Utilization, Years};
 use rust_decimal::Decimal;
@@ -27,11 +26,4 @@ pub struct ThetaExResidual {
     pub utilization: Utilization,
     pub energy: UsdPerGpuHour,
     pub discount: DiscountRate,
-}
-
-impl ThetaExResidual {
-    /// \( h = u H \).
-    pub fn utilized_hours_per_year(&self) -> Result<GpuHour, IdentityError> {
-        Ok(self.utilization * HOURS_PER_YEAR)
-    }
 }
