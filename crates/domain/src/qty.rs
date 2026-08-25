@@ -33,7 +33,7 @@ pub struct Hours(f64);
 pub struct Pue(f64);
 
 impl GpuHour {
-    pub fn new(hours: Decimal) -> Self {
+    pub const fn new(hours: Decimal) -> Self {
         Self(hours)
     }
 
