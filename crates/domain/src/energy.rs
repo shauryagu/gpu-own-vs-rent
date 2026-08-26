@@ -33,6 +33,14 @@ mod tests {
         let pue = Pue::try_new(1.0).unwrap();
         let e = energy_per_gpu_hour(tdp, price, pue).expect("finite physics");
         assert_eq!(e.amount(), Decimal::ZERO);
+
+        // π = 0 must still evaluate TDP · h · PUE. A short-circuit would miss this.
+        let overflow_tdp = Kilowatt::try_new(f64::MAX).unwrap();
+        let overflow_pue = Pue::try_new(f64::MAX).unwrap();
+        assert!(matches!(
+            energy_per_gpu_hour(overflow_tdp, price, overflow_pue),
+            Err(IdentityError::NonFinitePhysics)
+        ));
     }
 
     #[test]

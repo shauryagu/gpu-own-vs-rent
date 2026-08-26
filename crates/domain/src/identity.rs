@@ -19,7 +19,7 @@ pub enum IdentityError {
     ZeroAnnuity,
 }
 
-/// \( (1+r)^{T} \). \( r = 0 \) is 1, so we never raise zero.
+/// \( r = 0 \) ⇒ \( (1+r)^{T} = 1 \), so discounted salvage is \( R \).
 fn one_plus_r_pow_t(rate: DiscountRate, life: Years) -> Decimal {
     let r = rate.amount();
     if r.is_zero() {
@@ -68,14 +68,12 @@ impl ThetaExResidual {
     }
 }
 
-/// `TryFrom<Decimal>` is infallible today. One wrap so a later check is not a
-/// library `expect` on every identity path, and is not `NonFinitePhysics`.
 pub(crate) fn usd(d: Decimal) -> Usd {
-    Usd::try_from(d).expect("TryFrom<Decimal> for Usd is infallible")
+    Usd::from_decimal(d)
 }
 
 pub(crate) fn rate(d: Decimal) -> UsdPerGpuHour {
-    UsdPerGpuHour::try_from(d).expect("TryFrom<Decimal> for UsdPerGpuHour is infallible")
+    UsdPerGpuHour::from_decimal(d)
 }
 
 /// Capital-recovery rent \( F_{\mathrm{capital}} = P / (h A) \). Not a second name for \( F(\theta) \).

@@ -60,6 +60,10 @@ impl Usd {
     pub fn amount(self) -> Decimal {
         self.0
     }
+
+    pub(crate) fn from_decimal(value: Decimal) -> Self {
+        Self(value)
+    }
 }
 
 impl TryFrom<Decimal> for Usd {
@@ -77,6 +81,10 @@ impl UsdPerGpuHour {
 
     pub fn amount(self) -> Decimal {
         self.0
+    }
+
+    pub(crate) fn from_decimal(value: Decimal) -> Self {
+        Self(value)
     }
 }
 
