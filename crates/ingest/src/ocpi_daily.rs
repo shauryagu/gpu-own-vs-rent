@@ -52,7 +52,7 @@ pub fn parse_daily_index_wrapper(bytes: &[u8]) -> Result<DailyIndexRecord, Inges
     })
 }
 
-pub fn parse_daily_index_body(value: &Value) -> Result<ObservedSpot, IngestError> {
+fn daily_index_data(value: &Value) -> Result<&Value, IngestError> {
     if value.get("success") != Some(&Value::Bool(true)) {
         return Err(IngestError::Parse(
             "daily-index: success is not true".to_string(),
@@ -66,12 +66,21 @@ pub fn parse_daily_index_body(value: &Value) -> Result<ObservedSpot, IngestError
             "daily-index: data is an array; invert S is per-GPU only".to_string(),
         ));
     }
-    let gpu_type = data
+    Ok(data)
+}
+
+fn daily_index_gpu_type(value: &Value) -> Result<&str, IngestError> {
+    daily_index_data(value)?
         .get("gpu_type")
         .and_then(Value::as_str)
-        .ok_or_else(|| IngestError::Parse("daily-index: missing gpu_type".to_string()))?;
+        .ok_or_else(|| IngestError::Parse("daily-index: missing gpu_type".to_string()))
+}
+
+pub fn parse_daily_index_body(value: &Value) -> Result<ObservedSpot, IngestError> {
+    let gpu_type = daily_index_gpu_type(value)?;
     let gpu = gpu_model_from_ocpi_name(gpu_type)
         .ok_or_else(|| IngestError::Parse(format!("daily-index: unknown gpu_type {gpu_type:?}")))?;
+    let data = daily_index_data(value)?;
     let date = data
         .get("date")
         .and_then(Value::as_str)
@@ -260,8 +269,8 @@ fn collect_one_daily_index(
         });
     }
     let value: Value = serde_json::from_slice(&response.bytes)?;
-    let spot = match parse_daily_index_body(&value) {
-        Ok(spot) => spot,
+    let got = match daily_index_gpu_type(&value) {
+        Ok(got) => got,
         Err(err) => {
             crate::ocpi_current::log_attempt(
                 now,
@@ -274,7 +283,6 @@ fn collect_one_daily_index(
             return Err(err);
         }
     };
-    let got = ocpi_name(spot.gpu);
     if got != gpu_name {
         crate::ocpi_current::log_attempt(
             now,
@@ -361,16 +369,6 @@ fn collect_one_history(
             );
             Err(err)
         }
-    }
-}
-
-fn ocpi_name(gpu: GpuModel) -> &'static str {
-    match gpu {
-        GpuModel::H100Sxm => "H100 SXM",
-        GpuModel::H200 => "H200",
-        GpuModel::B200 => "B200",
-        GpuModel::A100Sxm4 => "A100 SXM4",
-        GpuModel::Rtx5090 => "RTX 5090",
     }
 }
 

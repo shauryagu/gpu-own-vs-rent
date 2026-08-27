@@ -62,6 +62,37 @@ fn collect_daily_writes_raw_envelopes_and_not_hourly_jsonl() {
 }
 
 #[test]
+fn collect_daily_unmapped_gpu_writes_raw_without_gpumodel() {
+    let tmp = tempfile::tempdir().unwrap();
+    let fx = tmp.path().join("fx");
+    write_file(
+        &fx,
+        "gpu-types-free.json",
+        br#"{"success":true,"data":[{"gpu_name":"H100 PCIe","region":""}]}"#,
+    );
+    write_file(&fx, "daily-index-all.json", RAW_ALL);
+    write_file(
+        &fx,
+        "daily-index-http/H100_PCIe.json",
+        br#"{"success":true,"data":{"gpu_type":"H100 PCIe","region":"global","index_value":1.23,"date":"2026-08-21T20:00:00.000Z"}}"#,
+    );
+    write_file(
+        &fx,
+        "daily-history/H100_PCIe.json",
+        br#"{"success":true,"gpu_type":"H100 PCIe","access":"public-3mo","data":[{"timestamp":"2026-08-21T20:00:00.000Z","index_value":1.23}]}"#,
+    );
+
+    let cache = cache_for(tmp.path());
+    collect_daily(frozen_at(), &FixtureHttp::new(&fx), &cache).unwrap();
+
+    let stamp = compact_fetched_at(frozen_at());
+    assert!(tmp
+        .path()
+        .join(format!("data/raw/ocpi/daily-index/H100_PCIe/{stamp}.json"))
+        .exists());
+}
+
+#[test]
 fn collect_daily_gpu_type_mismatch_keeps_raw() {
     let tmp = tempfile::tempdir().unwrap();
     let fx = tmp.path().join("fx");

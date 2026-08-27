@@ -109,6 +109,25 @@ fn gpu_name_instead_of_gpu_type_is_err() {
 }
 
 #[test]
+fn daily_index_all_fixture_is_not_invert_s() {
+    let value: serde_json::Value =
+        serde_json::from_slice(&fixture_bytes("ocpi/daily-index-all.json")).expect("json");
+    let err = ingest::ocpi_daily::parse_daily_index_body(&value).unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("array") || msg.contains("per-GPU"),
+        "all-GPU envelope must not parse as invert S, got {err}"
+    );
+}
+
+#[test]
+fn history_bytes_are_not_invert_s() {
+    let value: serde_json::Value =
+        serde_json::from_slice(&fixture_bytes("ocpi/daily-history/H100_SXM.json")).expect("json");
+    assert!(ingest::ocpi_daily::parse_daily_index_body(&value).is_err());
+}
+
+#[test]
 fn history_last_point_is_two_decimal_and_not_invert_s() {
     let history =
         ingest::ocpi_daily::parse_daily_history(&fixture_bytes("ocpi/daily-history/H100_SXM.json"))
