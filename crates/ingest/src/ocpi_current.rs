@@ -7,7 +7,7 @@ use crate::cache::{self, RawCache};
 use crate::error::IngestError;
 use crate::http::{HttpGet, RawResponse};
 
-const GPU_TYPES_FREE_URL: &str = "https://api.ornnai.com/api/gpu-types-free";
+pub(crate) const GPU_TYPES_FREE_URL: &str = "https://api.ornnai.com/api/gpu-types-free";
 const CURRENT_URL_PREFIX: &str = "https://api.ornnai.com/api/gpu/";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -260,7 +260,7 @@ fn append_hourly(
     Ok(())
 }
 
-fn log_attempt(
+pub(crate) fn log_attempt(
     now: OffsetDateTime,
     gpu: &str,
     http_status: u16,
@@ -280,7 +280,7 @@ fn log_attempt(
     );
 }
 
-fn percent_encode(input: &str) -> String {
+pub(crate) fn percent_encode(input: &str) -> String {
     let mut out = String::new();
     for byte in input.bytes() {
         match byte {

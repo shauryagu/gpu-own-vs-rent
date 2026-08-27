@@ -90,13 +90,29 @@ impl HttpGet for FixtureHttp {
 }
 
 fn fixture_path(dir: &std::path::Path, url: &str) -> PathBuf {
-    let url = url.split('?').next().unwrap_or(url);
-    if url.ends_with("/api/gpu-types-free") {
+    if url.contains("epoch.ai") && url.contains("ml_hardware.csv") {
+        return dir.join("ml_hardware.excerpt.csv");
+    }
+    if url.contains("/api/daily-index/all") {
+        return dir.join("daily-index-all.json");
+    }
+    if let Some(rest) = url.split("/api/daily-index?gpu=").nth(1) {
+        let name = percent_decode(rest.split('&').next().unwrap_or(rest));
+        let slug = crate::cache::gpu_slug(&name);
+        return dir.join("daily-index-http").join(format!("{slug}.json"));
+    }
+    let path_only = url.split('?').next().unwrap_or(url);
+    if path_only.ends_with("/api/gpu-types-free") {
         return dir.join("gpu-types-free.json");
     }
     const MARKER: &str = "/api/gpu/";
-    if let Some(idx) = url.find(MARKER) {
-        let rest = &url[idx + MARKER.len()..];
+    if let Some(idx) = path_only.find(MARKER) {
+        let rest = &path_only[idx + MARKER.len()..];
+        if let Some(name_part) = rest.strip_suffix("/index-history") {
+            let name = percent_decode(name_part);
+            let slug = crate::cache::gpu_slug(&name);
+            return dir.join("daily-history").join(format!("{slug}.json"));
+        }
         if !rest.is_empty() && !rest.contains('/') {
             let name = percent_decode(rest);
             let slug = crate::cache::gpu_slug(&name);

@@ -63,6 +63,62 @@ impl RawCache {
         Ok(path)
     }
 
+    pub fn write_daily_index(
+        &self,
+        gpu_slug: &str,
+        fetched_at: OffsetDateTime,
+        bytes: &[u8],
+    ) -> Result<PathBuf, IngestError> {
+        let path = self
+            .data_dir
+            .join("raw/ocpi/daily-index")
+            .join(gpu_slug)
+            .join(format!("{}.json", compact_fetched_at(fetched_at)));
+        write_raw(&path, bytes)?;
+        Ok(path)
+    }
+
+    pub fn write_daily_index_all(
+        &self,
+        fetched_at: OffsetDateTime,
+        bytes: &[u8],
+    ) -> Result<PathBuf, IngestError> {
+        let path = self
+            .data_dir
+            .join("raw/ocpi/daily-index-all")
+            .join(format!("{}.json", compact_fetched_at(fetched_at)));
+        write_raw(&path, bytes)?;
+        Ok(path)
+    }
+
+    pub fn write_daily_history(
+        &self,
+        gpu_slug: &str,
+        fetched_at: OffsetDateTime,
+        bytes: &[u8],
+    ) -> Result<PathBuf, IngestError> {
+        let path = self
+            .data_dir
+            .join("raw/ocpi/daily-history")
+            .join(gpu_slug)
+            .join(format!("{}.json", compact_fetched_at(fetched_at)));
+        write_raw(&path, bytes)?;
+        Ok(path)
+    }
+
+    pub fn write_epoch_ml_hardware(
+        &self,
+        fetched_at: OffsetDateTime,
+        bytes: &[u8],
+    ) -> Result<PathBuf, IngestError> {
+        let path = self
+            .data_dir
+            .join("raw/epoch/ml_hardware")
+            .join(format!("{}.csv", compact_fetched_at(fetched_at)));
+        write_raw(&path, bytes)?;
+        Ok(path)
+    }
+
     pub fn append_hourly_line(&self, line: &str) -> Result<PathBuf, IngestError> {
         let path = self.data_dir.join("ocpi-hourly.jsonl");
         if let Some(parent) = path.parent() {
