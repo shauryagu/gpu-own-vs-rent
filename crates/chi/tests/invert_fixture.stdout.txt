@@ -1,0 +1,33 @@
+chi invert  gpu=H100 SXM  format=text
+
+S (OCPI daily-index)      2.8796 USD / GPU-hour
+  valid_on                2026-08-21
+  fetched_at              2026-08-22T12:00:00.000Z
+  series                  ocpi.daily-index
+  source                  fixtures/ocpi/daily-index/H100_SXM.json
+
+Declared (P, T, u, e, r)   [no salvage declared]
+  P                       25000.00 USD / GPU     [declared point; not an MSRP]
+  T                       5 years
+  u                       0.60
+  e                       0 USD / GPU-hour    [0.7 kW · 1 h · 0.00 USD/kWh · PUE 1.0]
+  r                       0.10 / year
+  h                       5256.00 GPU-hour / year
+  F_capital               1.2547 USD / GPU-hour
+
+Inverse
+  L leftover              1.6248 USD / GPU-hour  [S − F_capital − e; rises with S]
+  R* salvage              -52138.49 USD / GPU    [NPV break-even salvage; falls with S]
+
+Accounting point  T=6y, R=0  (same P, u, e, r)
+  F_acct                  1.0921 USD / GPU-hour
+  F_acct − S              -1.7875 USD / GPU-hour
+  L leftover at T=6       1.7875 USD / GPU-hour
+  R* salvage at T=6       -72487.43 USD / GPU
+
+Notes
+  Hourly current was not used.
+  Daily history was not used (that series rounds S to 2.88).
+  F(θ) omitted: --residual-cents not set; F(R*)=S is a tautology.
+  Negative R* means scrap-zero ownership still beats renting at this S.
+  Half-life was not estimated.

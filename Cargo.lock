@@ -260,6 +260,8 @@ dependencies = [
  "domain",
  "ingest",
  "project",
+ "rust_decimal",
+ "serde_json",
  "time",
 ]
 
