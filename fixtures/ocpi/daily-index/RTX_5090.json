@@ -1,0 +1,13 @@
+{
+  "fetched_at": "2026-08-22T12:00:00.000Z",
+  "source_url": "https://api.ornnai.com/api/daily-index?gpu=RTX%205090",
+  "body": {
+    "success": true,
+    "data": {
+      "gpu_type": "RTX 5090",
+      "region": "global",
+      "index_value": 1.11,
+      "date": "2026-08-21T20:00:00.000Z"
+    }
+  }
+}
