@@ -1,101 +1,82 @@
 # AGENTS.md
 
+## Vocabulary
+
+Canonical terms live in `docs/vocab.md`. When a symbol or market word is
+ambiguous — leftover vs salvage, \(F(\theta)\) vs a futures price, which OCPI
+series is \(S\) — read that file before writing code, comments, or docs.
+Load `.grok/skills/project-vocab/SKILL.md` (`/project-vocab`).
+Do not invent a synonym if the term is missing; ask.
+
 ## Project
 
-A reservation-pricing simulator for perishable compute capacity, delivered as a
-working full-stack system over a 7-day build. Compute (GPU rental) is the live
-case study; the subject is capacity control under uncertainty.
+An own-vs-rent calculator for perishable compute **capacity as a chip**:
+fair means discrete NPV of buy-and-earn-rent is zero. Compute (GPU rental)
+is the live case study.
 
-Full spec: `docs/project-plan.md`
-Read-order and rationale for source material: `docs/reading-list.md`
+Binding spec: `docs/designs/2026-08-22-gate-0-1-mvp.md` (Gates 0+1).
+Roadmap: `docs/execution-plan.md`. Positioning: `docs/positioning.md`.
 
-**Standing constraint: free, publicly available data only.** No paid feeds, no
-purchased history, no private venue data. This shapes the method (sweep
-parameters rather than estimate them) — do not propose paid data sources as a
-fix for a modeling gap.
+**`docs/project-plan.md` is out of scope** (seed 7-day reservation
+simulator: R1–R4, occupancy grid, hedge blotter, client clock). Do not
+implement it.
 
-## Setup / test / build commands
+**Standing constraint: free, publicly available data only.** No paid feeds,
+no purchased history, no private venue data. Unknowns are declared or swept
+— do not propose paid data as a fix for a modeling gap.
 
-<!-- Fill in once scaffolded on Day 1. Placeholder shape below. -->
-- Install: `TODO`
-- Dev server: `TODO`
-- Test: `TODO`
-- Lint: `TODO`
-- DB migrate: `TODO`
+## Setup / test / build
 
-## Architecture (high level)
+- PATH: `export PATH="$HOME/.cargo/bin:$PATH"` (cargo is not on default PATH)
+- Test: `cargo test --workspace`
+- Invert (teaching H100):
+  `cargo run -p chi -- invert --gpu "H100 SXM" --fixture-dir fixtures --purchase-cents 2500000 --life-years 5 --utilization 0.60 --discount-rate 0.10`
+- Collect: `cargo run -p chi -- collect --data-dir data --series current`
+- Release collect binary: `cargo build --release -p chi`
+- Do not install launchd from a worktree. Plist points at
+  `target/release/chi` on the main checkout.
+
+## Architecture
 
 ```
-React + TS client  <-- SSE (clock, bids, marks) / REST -->  API layer
-                                                                  |
-                                              Simulation core (clock, ledger,
-                                              pricing engine) + Job runner (sweeps)
-                                                                  |
-                                                        Postgres (append-only
-                                                        event log + projections)
-                                                                  ^
-                                              Ingest (free sources, cached to disk)
+chi (binary)  -->  ingest  -->  domain
+              -->  project -->  domain
+chi_log (stub, unlinked until Gate 2)
 ```
 
-- **Simulation clock is server-authoritative.** The client never advances time;
-  it renders state and issues commands. This is a hard invariant, not a
-  convenience — do not add client-side time advancement for any reason,
-  including tests or demos.
-- **Event log is the source of truth.** A run is fully determined by its seed
-  plus its decision events. Any new state must be derivable by replay, not
-  stored as an independent mutation path.
-- **Ledger invariants are enforced in the database**, not just application
-  code (exclusion constraints or serializable transactions + optimistic
-  versioning). See `docs/project-plan.md` §3 for the five invariants.
-
-## Domain references — consult before implementing
-
-This project translates results from three papers directly into code. Before
-touching the pricing engine, the ledger's whole-node/group-bid logic, or the
-hedge layer, load the `research-references` skill — it maps specific paper
-sections to specific parts of this codebase, so you're implementing a cited
-result rather than re-deriving one.
-
-- Pricing regimes R1–R4, opportunity cost, bid-price logic → Talluri & van Ryzin
-- Whole-node / group-bid formulation, DLP engine, stranding cost →
-  network revenue management paper, §1 and §3.1 particularly
-- Synthetic futures curve, why cash-and-carry fails for compute, risk premium
-  sign → Bandi & Su
-
-Do not re-derive or "improve on" these results from first principles without
-flagging it — the project's stated positioning is that it applies an
-established result to an open operator-side question, not that it discovers
-new theory.
+- **`domain` has no I/O** — no `reqwest`, `std::fs`, `clap`, `tokio`.
+- **Invert \(S\)** is `{fixture_dir}/ocpi/daily-index/{slug}.json` only.
+  Not hourly current, not history, not `data/`.
+- **Collect** writes timestamped raw bodies + hourly JSONL (`ocpi.current`).
+  Simulation clock is not this MVP. The client never advances time.
+- **Event log is Gate 2.** Until then the file cache is the source of
+  collect bytes; invert is fixture-deterministic.
 
 ## Non-negotiables
 
-- Free data sources only — see `docs/llms.txt` for the approved list.
-- Whole-node allocations are indivisible when `divisible = false` on a
-  deployment. Do not silently allow fractional-node fills.
-- Accepted bids are immutable (ledger invariant 5).
-- The half-life parameter (price-process mean reversion) is swept, never
-  point-estimated from the ~90-observation OCPI window. See
-  `docs/project-plan.md` §5.3 before writing any calibration code.
-- Bid-price schemes are known to be non-optimal for network/bundle requests
-  (see network RM paper §3). Do not present R3/R4 as globally optimal in
-  comments, docs, or UI copy — "near-optimal heuristic" is the accurate frame.
+- Free data only — `docs/llms.txt`.
+- Two named inverses forever: leftover \(L\) (`UsdPerGpuHour`, rises with
+  \(S\)) and salvage \(R^{\star}\) (`Usd`, falls with \(S\), unclamped).
+  Never “implied residual.”
+- \(F(\theta)\) only with `--residual-cents` (zero is present, not omitted).
+  Accounting \(T=6\), \(R=0\) is a labeled overlay, not primary \(\theta\).
+- \(P\) is `--purchase-cents`, never Epoch release price.
+- Half-life is never estimated.
+- A100 SXM4 / RTX 5090 fail closed (do not guess 40 vs 80 GB).
+- Whole-node / bid-price / R1–R4 are not this product.
 
 ## Do not
 
-- Do not add paid API keys or purchased datasets to the ingest layer.
-- Do not implement continuous client-side clock advancement.
-- Do not collapse the four pricing regimes into one "best" regime — the
-  comparison across all four, on identical seeded bid streams, is the point
-  of the project (see D3, D9 in `docs/project-plan.md` §1).
-- Do not remove the parameter-sweep job (see project-plan.md §8, "never cut"
-  list) even under time pressure — fall back to precomputed sweep results
-  before dropping the sweep itself.
+- Do not add paid API keys or purchased datasets.
+- Do not treat hourly JSONL as invert \(S\).
+- Do not collapse leftover and salvage under one name.
+- Do not silently default \(P\), \(T\), \(u\), or \(r\).
+- Do not re-derive Bandi & Su cash-and-carry failure; cite §5.1.
+- Do not present \(F(\theta)\) as futures \(F_t(T)\).
 
 ## When context is missing
 
-If a task requires a data source, threshold, or modeling choice not covered
-in `docs/project-plan.md`, `docs/reading-list.md`, or the `research-references`
-skill, stop and ask rather than inventing a plausible-sounding default —
-several parameters here (cost basis, basis error range, half-life) are
-deliberately swept because they're not known, and a silently invented point
-value will misrepresent that.
+If a task needs a data source, threshold, or modeling choice not in
+`docs/designs/2026-08-22-gate-0-1-mvp.md`, `docs/vocab.md`, or
+`docs/execution-plan.md`, stop and ask. Do not invent \(P\), \(r\),
+half-life, or a leftover/salvage synonym.
