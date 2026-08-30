@@ -7,8 +7,7 @@ fn source_fetched_json_round_trips() {
         source_url: "https://api.ornnai.com/api/gpu/H100%20SXM".to_string(),
         http_status: 200,
         series: "ocpi.current".to_string(),
-        raw_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            .to_string(),
+        raw_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
     });
     let json = serde_json::to_string(&event).expect("serialize SourceFetched");
     let value: serde_json::Value = serde_json::from_str(&json).expect("json object");
@@ -26,8 +25,7 @@ fn series_parsed_json_round_trips() {
         gpu_name: "H100 SXM".to_string(),
         index_value: "2.63".to_string(),
         valid_on: None,
-        raw_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            .to_string(),
+        raw_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
     });
     let json = serde_json::to_string(&event).expect("serialize SeriesParsed");
     let value: serde_json::Value = serde_json::from_str(&json).expect("json object");

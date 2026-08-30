@@ -1,0 +1,2 @@
+{"type":"SourceFetched","fetched_at":"2026-08-22T21:03:21.660Z","source_url":"https://api.ornnai.com/api/gpu/H100%20SXM","http_status":200,"series":"ocpi.current","raw_sha256":"608fb5ff229d86b8bb4ac6f4af6170c48126f0dbdb47c11c774428cac455b95f"}
+{"type":"SeriesParsed","series":"ocpi.current","gpu_name":"H100 SXM","index_value":"2.63","valid_on":null,"raw_sha256":"608fb5ff229d86b8bb4ac6f4af6170c48126f0dbdb47c11c774428cac455b95f"}

@@ -1,5 +1,13 @@
 //! Append-only ingest events. Replay folds these; invert does not read them.
 
+mod cas;
+mod error;
+mod jsonl;
+
+pub use cas::open_cas;
+pub use error::Error;
+pub use jsonl::read_events;
+
 use serde::{Deserialize, Serialize};
 
 /// One append-only ingest event.
