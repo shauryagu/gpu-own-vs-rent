@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::error::Error;
 use crate::Event;
 
-/// Read append-only JSONL in file order. Empty lines (trailing newline) are skipped.
+/// Read append-only JSONL in file order. Empty lines are skipped.
 pub fn read_events(path: &Path) -> Result<Vec<Event>, Error> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);

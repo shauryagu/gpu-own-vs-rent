@@ -21,10 +21,11 @@ pub struct CatalogEntry {
     pub valid_on: Option<String>,
     pub raw_sha256: String,
     pub index_value: Option<String>,
+    /// Always serialized. Null until a parse-failure event exists.
     pub parse_error: Option<String>,
 }
 
-/// Fold log-order events. Opens CAS on every `SourceFetched`.
+/// Project log-order fetches. A missing CAS blob fails the fold.
 pub fn fold(events: &[Event], log_dir: &Path) -> Result<Catalog, Error> {
     let mut entries = Vec::new();
     for event in events {
@@ -57,7 +58,7 @@ pub fn fold(events: &[Event], log_dir: &Path) -> Result<Catalog, Error> {
     Ok(Catalog { entries })
 }
 
-/// Compact JSON in struct field order.
+/// Compact JSON so a second fold can compare bytes to the golden catalog.
 pub fn catalog_bytes(catalog: &Catalog) -> Result<Vec<u8>, Error> {
     Ok(serde_json::to_vec(catalog).expect("catalog is strings and options"))
 }

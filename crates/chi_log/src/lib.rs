@@ -12,7 +12,7 @@ pub use jsonl::read_events;
 
 use serde::{Deserialize, Serialize};
 
-/// One append-only ingest event.
+/// Internally tagged. Unknown `type` fails closed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Event {

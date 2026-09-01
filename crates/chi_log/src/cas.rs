@@ -8,7 +8,7 @@ use crate::error::Error;
 
 /// Open `log_dir/cas/{raw_sha256}` and require the bytes to hash to that key.
 ///
-/// The key is the path component. This does not search `fetched_at` or `data/raw`.
+/// The key must be 64 lowercase hex so `join` cannot leave `cas/`.
 pub fn open_cas(log_dir: &Path, raw_sha256: &str) -> Result<Vec<u8>, Error> {
     if !is_lowercase_sha256_hex(raw_sha256) {
         return Err(Error::InvalidCasKey(raw_sha256.to_string()));
@@ -34,6 +34,7 @@ fn is_lowercase_sha256_hex(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
+/// Local hex so this crate does not depend on ingest.
 fn sha256_hex(bytes: &[u8]) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let digest = Sha256::digest(bytes);
