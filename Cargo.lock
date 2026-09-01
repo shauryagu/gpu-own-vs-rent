@@ -256,6 +256,7 @@ name = "chi"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chi_log",
  "clap",
  "domain",
  "ingest",
