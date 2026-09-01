@@ -2,10 +2,12 @@
 
 mod cas;
 mod error;
+mod fold;
 mod jsonl;
 
 pub use cas::open_cas;
 pub use error::Error;
+pub use fold::{catalog_bytes, fold, Catalog, CatalogEntry};
 pub use jsonl::read_events;
 
 use serde::{Deserialize, Serialize};
