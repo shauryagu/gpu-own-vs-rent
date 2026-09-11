@@ -1,0 +1,53 @@
+# One-shot jobs for the chi CLI. Not a daemon. Does not replace launchd.
+# Teaching invert flags are the H100 README example, not product defaults.
+# Invert still requires --purchase-cents --life-years --utilization --discount-rate.
+#
+# From the repo root:
+#   docker compose -f art/compose.yaml run --rm invert
+#   docker compose -f art/compose.yaml run --rm replay
+#   mkdir -p data && docker compose -f art/compose.yaml run --rm collect
+
+name: chi
+
+x-chi: &chi
+  build:
+    context: ..
+    dockerfile: art/Dockerfile
+
+services:
+  invert:
+    <<: *chi
+    command:
+      - invert
+      - --gpu
+      - H100 SXM
+      - --fixture-dir
+      - /app/fixtures
+      - --purchase-cents
+      - "2500000"
+      - --life-years
+      - "5"
+      - --utilization
+      - "0.60"
+      - --discount-rate
+      - "0.10"
+
+  replay:
+    <<: *chi
+    command:
+      - replay
+      - --log-dir
+      - /app/fixtures/log/v1
+      - --format
+      - json
+
+  collect:
+    <<: *chi
+    volumes:
+      - ../data:/data
+    command:
+      - collect
+      - --data-dir
+      - /data
+      - --series
+      - current

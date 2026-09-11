@@ -1,0 +1,8 @@
+target
+data
+.worktrees
+.git
+.venv
+.serena
+**/*.rs.bk
+.DS_Store

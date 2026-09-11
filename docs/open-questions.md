@@ -1,4 +1,4 @@
-# Open questions (through PR 6)
+# Open questions (through Gate 2)
 
 Binding resolutions live in
 [`designs/2026-08-22-gate-0-1-mvp.md`](designs/2026-08-22-gate-0-1-mvp.md).
@@ -7,9 +7,11 @@ What the code does: [`status.md`](status.md). Names: [`vocab.md`](vocab.md).
 Do not invent \(P\), \(r\), primary \(T\), or primary \(u\). Do not collapse
 leftover \(L\) and salvage \(R^{\star}\). Do not add a paid Ornn key.
 
-**Code after PR 6.** `collect --series current|daily|epoch` writes raw bodies.
+**Code after Gate 2.** `collect --series current|daily|epoch` writes raw bodies.
 `chi invert` on frozen daily-index fixtures prints \(L\) and \(R^{\star}\);
-\(F(\theta)\) only with `--residual-cents`. `chi_log` is still an unlinked stub.
+\(F(\theta)\) only with `--residual-cents`. `chi replay` folds a fixture log
+to an ingest catalog (`ocpi.current`). Collect stays file-based. Invert does
+not read the log.
 
 | Status | Meaning |
 |---|---|
@@ -19,7 +21,7 @@ leftover \(L\) and salvage \(R^{\star}\). Do not add a paid Ornn key.
 
 ---
 
-## Closed in Gates 0–1
+## Closed in Gates 0–2
 
 | Item | Status |
 |---|---|
@@ -37,6 +39,7 @@ leftover \(L\) and salvage \(R^{\star}\). Do not add a paid Ornn key.
 | Half-life never estimated; \(H=8760\); \(\pi=0\); PUE \(=1.0\) | closed |
 | R1–R4 / `docs/project-plan.md` stay out | closed |
 | No paid Ornn key on collect | closed |
+| Event log + `chi replay` twice → byte-identical ingest catalog (`ocpi.current`). Collect file-based. Invert does not read the log. | closed — Gate 2 |
 
 ---
 
@@ -64,7 +67,6 @@ still matches the fixture names when this machine is the collector.
 
 | Gate | What |
 |---|---|
-| **2** | `chi_log`: `SourceFetched` / `SeriesParsed`, CAS payloads, `chi replay` twice → identical catalog. Collect stays file-based until a later increment. Invert does not read the log. |
 | **3** | Cost-stack *panel*; PUE sweep; named LMP. Leftover \(L\) already exists. No PJM in this repo yet. |
 | **4** | \(\Theta_L(S)\) and \(\Theta_{R^{\star}}(S)\) as two surfaces in `project`. |
 | **5** | H100e maps beyond identity. No OLS on five GPUs. |
@@ -81,5 +83,4 @@ exist; we will not invent the dollars.
 | When | Blocks |
 |---|---|
 | First live collect + launchd | Missed hours, free-list, no key in plist |
-| Gate 2 | Event log before a published number is a research artifact |
 | Gate 3 / 4 / 5 / 6+ | Deferred table |

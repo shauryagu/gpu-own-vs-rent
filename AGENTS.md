@@ -41,7 +41,7 @@ no purchased history, no private venue data. Unknowns are declared or swept
 ```
 chi (binary)  -->  ingest  -->  domain
               -->  project -->  domain
-chi_log (stub, unlinked until Gate 2)
+              -->  chi_log     # replay only
 ```
 
 - **`domain` has no I/O** — no `reqwest`, `std::fs`, `clap`, `tokio`.
@@ -49,8 +49,8 @@ chi_log (stub, unlinked until Gate 2)
   Not hourly current, not history, not `data/`.
 - **Collect** writes timestamped raw bodies + hourly JSONL (`ocpi.current`).
   Simulation clock is not this MVP. The client never advances time.
-- **Event log is Gate 2.** Until then the file cache is the source of
-  collect bytes; invert is fixture-deterministic.
+- **Event log.** `chi replay` folds `chi_log` over a fixture log directory.
+  Collect still writes files, not events. Invert stays fixture-deterministic.
 
 ## Non-negotiables
 

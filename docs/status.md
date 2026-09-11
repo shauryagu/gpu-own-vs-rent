@@ -1,8 +1,8 @@
-# Status (through PR 6)
+# Status (through Gate 2)
 
 What the code does after workspace scaffold (PR 1), hourly collector (PR 2),
 domain newtypes (PR 3), NPV identity (PR 4), daily-index / Epoch ingest (PR 5),
-and invert CLI (PR 6). On `main` at
+invert CLI (PR 6), and Gate 2 fixture log + `chi replay`. On `main` at
 [github.com/shauryagu/gpu-own-vs-rent](https://github.com/shauryagu/gpu-own-vs-rent).
 Binary: `chi`.
 
@@ -45,8 +45,8 @@ about the hardware stock.
 | Energy \(\pi=0\), PUE \(=1.0\) | Product \(e\) is still evaluated. |
 | Do not implement `docs/project-plan.md` | Seed reservation simulator. Out of scope. |
 
-Architecture: `chi` → `ingest` + `project` → `domain`. `chi_log` unlinked
-(Gate 2). `domain` has no I/O. One MVP trait: `ingest::HttpGet`. Blocking
+Architecture: `chi` → `ingest` + `project` → `domain`. `chi` → `chi_log` for
+`replay` only. `domain` has no I/O. One MVP trait: `ingest::HttpGet`. Blocking
 `reqwest`, 15 s. Money is `Decimal`; `f64` is physics. Three serde scales:
 ingest **source token**, domain **display** (USD 2, USD/GPU-hour 4), invert
 JSON **`round_dp(12)`** on computed money. \(S\) in invert JSON is the source
@@ -58,18 +58,22 @@ token.
 
 | Command | Behavior |
 |---|---|
-| `chi --help` | `collect`, `invert`. |
+| `chi --help` | `collect`, `invert`, `replay`. |
 | `chi collect` / `--series current` | Free-list + per-GPU current. Raw envelopes + `ocpi.hourly.v1` JSONL. |
 | `chi collect --series daily` | Raw daily-index / all / history. No hourly JSONL. |
 | `chi collect --series epoch` | Epoch `ml_hardware.csv` under `data/raw/epoch/`. |
-| `chi invert` | Frozen `{fixture_dir}/ocpi/daily-index/{slug}.json`. Required `--purchase-cents --life-years --utilization --discount-rate`. Always prints \(L\) and \(R^{\star}\). \(F(\theta)\) only with `--residual-cents`. Accounting overlay \(T=6,R=0\). No HTTP, no `--data-dir`. |
+| `chi invert` | Frozen `{fixture_dir}/ocpi/daily-index/{slug}.json`. Required `--purchase-cents --life-years --utilization --discount-rate`. Always prints \(L\) and \(R^{\star}\). \(F(\theta)\) only with `--residual-cents`. Accounting overlay \(T=6,R=0\). No HTTP, no `--data-dir`. Does not read the event log. |
+| `chi replay` | `--log-dir` required; `--format json`. Folds `events.jsonl` + `cas/{sha256}` to ingest catalog on stdout. Fixture series is `ocpi.current`. No HTTP. |
 
 Teaching H100 (`--gpu "H100 SXM" --fixture-dir fixtures --purchase-cents 2500000 --life-years 5 --utilization 0.60 --discount-rate 0.10`): \(S=2.879583333333333\), \(L\approx 1.6248\), \(R^{\star}\approx -52138\). Goldens are binary stdout, not the design sample.
 
-**Not here:** event log / `chi replay`, SQLite, server, UI, \(\Theta\) sweep.
+**Not here:** dual-write from collect, invert reading `chi_log`, SQLite, server, UI, \(\Theta\) sweep.
 
 launchd: `scripts/ocpi-hourly.plist` + `scripts/install-ocpi-hourly.sh`.
 Install on the **main** checkout’s `target/release/chi`, not a worktree.
+
+Optional Docker one-shots (same CLI; teaching invert flags declared in Compose,
+not product defaults): `docker compose -f art/compose.yaml run --rm invert|replay|collect`.
 
 ---
 
@@ -78,21 +82,27 @@ Install on the **main** checkout’s `target/release/chi`, not a worktree.
 ```
 chi (binary)  -->  ingest  -->  domain
               -->  project -->  domain
-chi_log (stub, unlinked)
+              -->  chi_log     # replay only
 ```
 
 | Path | Role |
 |---|---|
-| `crates/chi/src/main.rs` | `Cmd { Collect, Invert }`. |
+| `crates/chi/src/main.rs` | `Cmd { Collect, Invert, Replay }`. |
 | `crates/chi/src/collect.rs` | `--data-dir`, `--series`. Injects `now_utc()`, `LiveHttp`. |
 | `crates/chi/src/invert.rs` | Daily-index wrapper → leftover + implied salvage; optional fair rent. |
+| `crates/chi/src/replay.rs` | `--log-dir` → `chi_log` fold → catalog bytes on stdout. |
 | `crates/chi/tests/invert_fixture.rs` | Seven CLI tests + binary goldens. |
+| `crates/chi/tests/replay_cli.rs` | `--help` + golden catalog from committed `fixtures/log/v1`. |
+| `crates/chi/tests/replay_fixture.rs` | Copy-to-temp process-boundary tests (decoy raw, CAS, unknown tag). |
+| `crates/chi_log/` | `Event`, CAS open-by-hash, JSONL read, fold to ingest catalog. |
 | `crates/project/src/lib.rs` | Thin `NamedInverses { leftover, implied_salvage }`. Algebra stays in `domain`. |
 | `crates/domain/src/identity.rs` | `capital_rent`, `fair_rent`, `leftover`, `implied_salvage`. |
 | `crates/ingest/src/ocpi_daily.rs` | Wrapper → `ObservedSpot` (`OcpiDailyIndex` only). |
 | `crates/ingest/src/epoch.rs` | H100 → `NVIDIA H100 SXM5 80GB` TDP 700 W. Release price is annotation. |
 | `fixtures/ocpi/daily-index/H100_SXM.json` | Invert \(S\). |
 | `fixtures/ocpi/daily-index/A100_SXM4.json`, `RTX_5090.json` | Synthetic wrappers so Epoch fail-closed is reachable. Not teaching \(S\). |
+| `fixtures/log/v1/` | Replay fixture: `events.jsonl`, `cas/{sha256}`, golden `catalog.json`. |
+| `art/Dockerfile`, `art/entrypoint.sh`, `art/compose.yaml` | Optional image; Compose one-shots for invert / replay / collect. |
 
 Invert does not open `daily-index-all`, `daily-history`, `current`, or `data/`.
 
@@ -100,9 +110,9 @@ Invert does not open `daily-index-all`, `daily-history`, `current`, or `data/`.
 
 ## 5. Next
 
-**Gate 2** — `chi_log`: `SourceFetched` / `SeriesParsed`, content-addressed
-payloads, `chi replay` twice → byte-identical ingest catalog. Fixture log
-only at first; collect unchanged. Invert still does not read the log.
+Gate 2 (fixture event log + `chi replay`) is done. Collect still writes files,
+not events. Invert still does not read the log. Dual-write, `--as-of`, and
+invert-from-log are later.
 
 Do not start Gate 3–10 or the seed simulator from this snapshot.
 
