@@ -108,5 +108,5 @@ Image default with no command is `chi --help`.
 - [docs/status.md](docs/status.md) — what the code does today
 - [docs/open-questions.md](docs/open-questions.md) — still open or deferred
 - [docs/positioning.md](docs/positioning.md) — vs Bandi & Su and vs Ornn
-- [docs/designs/2026-08-22-gate-0-1-mvp.md](designs/2026-08-22-gate-0-1-mvp.md) — binding Gate 0+1 spec
+- [docs/designs/2026-08-22-gate-0-1-mvp.md](docs/designs/2026-08-22-gate-0-1-mvp.md) — binding Gate 0+1 spec
 - [docs/execution-plan.md](docs/execution-plan.md) — gate DAG
