@@ -96,7 +96,7 @@ chi (binary)  -->  ingest  -->  domain
 | `crates/chi/src/invert.rs` | Daily-index wrapper → leftover + implied salvage; optional fair rent. |
 | `crates/chi/src/stack.rs` | Cost-stack panel at named \(\pi\); default or declared PUE grid. |
 | `crates/chi/src/replay.rs` | `--log-dir` → `chi_log` fold → catalog bytes on stdout. |
-| `crates/chi/tests/invert_fixture.rs` | Seven CLI tests + binary goldens. |
+| `crates/chi/tests/invert_fixture.rs` | Invert CLI tests + binary goldens (PUE cases included). |
 | `crates/chi/tests/stack_cli.rs`, `stack_fixture.rs` | Stack energy identity + fixture panel tests. |
 | `crates/chi/tests/replay_cli.rs` | `--help` + golden catalog from committed `fixtures/log/v1`. |
 | `crates/chi/tests/replay_fixture.rs` | Copy-to-temp process-boundary tests (decoy raw, CAS, unknown tag). |
@@ -120,13 +120,17 @@ Replay is hourly current, not invert \(S\).
 
 ## 5. Next
 
-Gate 3 (cost-stack panel, named LMP, PUE grid, `chi stack`) is done. Collect
-still writes files, not events. Invert still does not read the log. Dual-write,
-`--as-of`, and invert-from-log are later.
+Gate 3 is on `main`. Collect still writes files, not events. Invert still does
+not read the log. Dual-write, `--as-of`, and invert-from-log are later.
+launchd is **not** installed.
 
-Next product work is Gate 4 (\(\Theta_L(S)\) / \(\Theta_{R^{\star}}(S)\) surfaces
-in `project`), not more Gate 3. Do not start the seed simulator from this
-snapshot.
+**Next product work:** Learn before Gate 4, then a one-gate TDD plan for
+\(\Theta_L(S)\) / \(\Theta_{R^{\star}}(S)\) in `project`. Do not start Gate 4
+code from this snapshot. Do not start the seed simulator.
+
+**Usability** (not a gate; invert goldens stay frozen):
+[`open-questions.md`](open-questions.md) § Usability follow-ups. Buyer path
+today is `chi stack` with named \(\pi\).
 
 ```bash
 export PATH="$HOME/.cargo/bin:$PATH"

@@ -97,6 +97,21 @@ on the critical path.”
 | **Exchange kernel extras** | 1 → 5; 1 → 8 | Conversion factor; offer-vs-index basis |
 | **Presentation** | 4 + 7 + 8 → 9 → 10 | UI then findings |
 
+### Where we are (2026-09-13)
+
+Code through Gate 3 is on `main`. Next product work is **Learn before Gate 4**, then a one-gate TDD plan. Do not start Gate 4 code from this snapshot. Do not implement `docs/project-plan.md`.
+
+| Gate | Status |
+|---|---|
+| **0** | `chi collect` exists. Hourly job is **not** installed (launchd still off). |
+| **1** | Done. `chi invert` on frozen daily-index. |
+| **2** | Done. Fixture `chi replay`. Collect still writes files, not events. |
+| **3** | Done. Named \(\pi\), PUE grid, `chi stack`. |
+| **4** | **Next.** Learn before, then TDD. \(\Theta_L(S)\) / \(\Theta_{R^{\star}}(S)\). |
+| **5–10** | Later. Live-marks path is 2 → 6 → 7, not 3 → 4. |
+
+Usability leftovers (not a gate): [`open-questions.md`](open-questions.md) § Usability follow-ups. Invert teaching transcript stays frozen.
+
 Optional later modules (used-market anchors, OTPI, SQLite, Sobol, seller
 simulator, Bandi synthetic-futures time series) attach **after Gate 4**, never
 before.
@@ -285,6 +300,8 @@ projection runner, not a place that “has state.”
 ---
 
 ## Gate 3 — Cost stack and energy
+
+**Status.** Done on `main` (`4b790b6`). Named \(\pi\) (PJM RTO LMP fixture), invert `--pue`, `project::CostStack`, `chi stack`, default PUE grid 1.0 / 1.2 / 1.5. Invert omit \(\pi\) still means leftover includes power.
 
 **Deliverable.**
 

@@ -74,7 +74,7 @@ still matches the fixture names when this machine is the collector.
 
 | Gate | What |
 |---|---|
-| **4** | \(\Theta_L(S)\) and \(\Theta_{R^{\star}}(S)\) as two surfaces in `project`. |
+| **4** | \(\Theta_L(S)\) and \(\Theta_{R^{\star}}(S)\) as two surfaces in `project`. **Next** after Learn before. |
 | **5** | H100e maps beyond identity. No OLS on five GPUs. |
 | **6** | `chi invert --as-of`. `AsOf` exists and is unused. |
 | **7+** | Live marks, axum/SSE, venue panel, client. SQLite when as-of queries hurt. |
@@ -84,9 +84,37 @@ exist; we will not invent the dollars.
 
 ---
 
+## Usability follow-ups
+
+Parked from the Gate 3 CLI review. **Not a gate.** Do not restyle invert
+teaching goldens unless we accept golden churn. Buyer path is `chi stack`.
+
+**Shipped in Gate 3 — do not redo.** `chi stack` PUE table with \(e/S\);
+named \(\pi\) fail-closed; `chi --help` about-lines; invert omit \(\pi\) still
+means leftover includes power; `--purchase-cents` stays cents (no dollar
+default).
+
+| Item | Constraint | Possible later |
+|---|---|---|
+| Cents typo (`25000` vs `2500000`) | Keep `--purchase-cents`. No silent \(P\). | Echo declared \(P\) as USD on stdout; help examples. Not `--purchase-usd`. |
+| Invert silent-zero \(\pi\), one PUE | Teaching default. Stack is the panel. | Louder invert note that omitted \(\pi\) folds power into leftover \(L\). Churns goldens. |
+| Invert punchline is late (metadata first) | Frozen transcript. | Reorder only if we accept golden churn. |
+| `--residual-cents` tautology note | \(F(\theta)\) only with the flag. | Shorter copy. Churns goldens. |
+| Replay stdout | Compact catalog JSON; series is hourly current (`"2.63"`), not invert \(S\). | `--format text` for “what did I collect?” |
+| `justfile` wrapping cargo vs Compose | Considered; Compose one-shots exist. | Optional host wrapper. Not a second product. |
+
+**Parked nits (code, not UX).** Mix `--lmp-fixture` with manual energy flags
+already bails, untested. `default_pue_grid` test name omits 1.0. Mixed
+`designs/` vs `docs/designs/` hrefs in older docs. `parse_index_value`
+bad-token still says `index_value`. Empty `pues` at the library yields Ok
+zero rows (CLI never passes empty).
+
+---
+
 ## Answer-by
 
 | When | Blocks |
 |---|---|
 | First live collect + launchd | Missed hours, free-list, no key in plist |
-| Gate 4 / 5 / 6+ | Deferred table |
+| Learn before Gate 4, then TDD | Deferred Gate 4 row |
+| Usability follow-ups | Not on the Gate 4 critical path |
