@@ -1,0 +1,11 @@
+{
+  "fetched_at": "2026-09-10T12:00:00.000Z",
+  "source_url": "https://www.pjm.com/markets-and-operations.aspx",
+  "body": {
+    "iso": "PJM",
+    "node": "RTO",
+    "unit": "USD/MWh",
+    "lmp_usd_per_mwh": "49.24",
+    "valid_on": "2026-09-10"
+  }
+}
