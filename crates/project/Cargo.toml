@@ -6,3 +6,7 @@ license.workspace = true
 
 [dependencies]
 domain = { path = "../domain" }
+rust_decimal = "1.42.1"
+
+[dev-dependencies]
+time = "0.3.55"

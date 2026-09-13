@@ -1,4 +1,8 @@
-//! Invert report assembly. Gate 4 owns Θ surfaces.
+//! Invert report assembly and cost-stack panel. Gate 4 owns Θ surfaces.
+
+mod cost_stack;
+
+pub use cost_stack::{CostStack, CostStackRow, NamedEnergy};
 
 use domain::{
     implied_salvage, leftover, IdentityError, ObservedSpot, ThetaExResidual, Usd, UsdPerGpuHour,

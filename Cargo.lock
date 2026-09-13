@@ -1133,6 +1133,8 @@ name = "project"
 version = "0.1.0"
 dependencies = [
  "domain",
+ "rust_decimal",
+ "time",
 ]
 
 [[package]]
