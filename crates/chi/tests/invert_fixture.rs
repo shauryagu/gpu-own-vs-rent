@@ -160,6 +160,66 @@ fn invert_rtx_5090_is_fail_closed_at_epoch() {
     assert_unmapped_gpu_not_missing_fixture("RTX 5090");
 }
 
+fn invert_json_with_energy(pue: Option<&str>) -> serde_json::Value {
+    let mut cmd = invert();
+    cmd.args(["--format", "json", "--energy-usd-per-kwh", "0.10"]);
+    if let Some(pue) = pue {
+        cmd.args(["--pue", pue]);
+    }
+    let output = cmd.output().expect("run chi invert json energy");
+    assert!(
+        output.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).expect("json")
+}
+
+#[test]
+fn invert_pue_1_5_scales_energy_and_cuts_leftover_not_capital() {
+    let at_default = invert_json_with_energy(None);
+    let at_1_5 = invert_json_with_energy(Some("1.5"));
+
+    assert_eq!(at_default["declared"]["energy_factors"]["pue"], 1.0);
+    assert_eq!(at_1_5["declared"]["energy_factors"]["pue"], 1.5);
+    assert_eq!(
+        at_default["declared"]["capital_rent_usd_per_gpu_hour"],
+        at_1_5["declared"]["capital_rent_usd_per_gpu_hour"]
+    );
+
+    let e0 = at_default["declared"]["energy_usd_per_gpu_hour"]
+        .as_str()
+        .expect("e0");
+    let e1 = at_1_5["declared"]["energy_usd_per_gpu_hour"]
+        .as_str()
+        .expect("e1");
+    assert_ne!(e0, e1, "PUE 1.5 must change e when π > 0");
+
+    let l0 = at_default["inverse"]["leftover_usd_per_gpu_hour"]
+        .as_str()
+        .expect("L0");
+    let l1 = at_1_5["inverse"]["leftover_usd_per_gpu_hour"]
+        .as_str()
+        .expect("L1");
+    let leftover0 = rust_decimal::Decimal::from_str_exact(l0).expect("L0 dec");
+    let leftover1 = rust_decimal::Decimal::from_str_exact(l1).expect("L1 dec");
+    assert!(
+        leftover1 < leftover0,
+        "higher PUE must cut leftover: {leftover1} vs {leftover0}"
+    );
+    assert!(at_1_5.get("implied_residual").is_none());
+    assert!(at_1_5["inverse"].get("implied_salvage_usd").is_some());
+}
+
+#[test]
+fn invert_pue_zero_is_err() {
+    let output = invert()
+        .args(["--pue", "0", "--format", "json"])
+        .output()
+        .expect("run");
+    assert!(!output.status.success(), "PUE 0 must fail closed");
+}
+
 #[test]
 fn invert_missing_daily_index_names_the_path() {
     let output = Command::new(env!("CARGO_BIN_EXE_chi"))

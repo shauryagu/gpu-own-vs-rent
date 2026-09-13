@@ -57,6 +57,10 @@ pub struct InvertArgs {
     #[arg(long)]
     energy_usd_per_kwh: Option<String>,
 
+    /// Datacenter PUE (wall ÷ IT). Omitted ⇒ 1.0.
+    #[arg(long)]
+    pue: Option<f64>,
+
     #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
     format: OutputFormat,
 }
@@ -90,7 +94,11 @@ pub fn run(args: InvertArgs) -> Result<()> {
         .to_f64()
         .ok_or_else(|| anyhow!("Epoch TDP is not a finite kW"))?;
     let tdp = Kilowatt::try_new(tdp_kw)?;
-    let pue = Pue::try_new(1.0)?;
+    let pue_value = args.pue.unwrap_or(1.0);
+    if !pue_value.is_finite() || pue_value <= 0.0 {
+        bail!("--pue must be a finite number > 0, got {pue_value}");
+    }
+    let pue = Pue::try_new(pue_value)?;
     let pi = match &args.energy_usd_per_kwh {
         Some(text) => UsdPerKwh::try_from(parse_decimal(text, "energy-usd-per-kwh")?)?,
         None => UsdPerKwh::from_cents(0),
@@ -170,6 +178,7 @@ pub fn run(args: InvertArgs) -> Result<()> {
                 energy,
                 tdp_kw,
                 pi,
+                pue,
                 discount,
                 hours,
                 f_capital,
@@ -193,6 +202,7 @@ pub fn run(args: InvertArgs) -> Result<()> {
                 energy,
                 tdp_kw,
                 pi,
+                pue,
                 discount,
                 f_capital,
                 inverses,
@@ -238,6 +248,15 @@ fn json_rate(rate: UsdPerGpuHour) -> String {
     rate.amount().round_dp(12).to_string()
 }
 
+fn format_pue(pue: f64) -> String {
+    let text = pue.to_string();
+    if text.contains('.') {
+        text
+    } else {
+        format!("{text}.0")
+    }
+}
+
 fn json_usd(usd: Usd) -> String {
     usd.amount().round_dp(12).to_string()
 }
@@ -255,6 +274,7 @@ struct TextReport<'a> {
     energy: UsdPerGpuHour,
     tdp_kw: f64,
     pi: UsdPerKwh,
+    pue: Pue,
     discount: DiscountRate,
     hours: domain::GpuHour,
     f_capital: UsdPerGpuHour,
@@ -297,10 +317,11 @@ fn render_text(r: TextReport<'_>) -> String {
         r.utilization.amount()
     ));
     out.push_str(&format!(
-        "  e                       {} USD / GPU-hour    [{} kW · 1 h · {} USD/kWh · PUE 1.0]\n",
+        "  e                       {} USD / GPU-hour    [{} kW · 1 h · {} USD/kWh · PUE {}]\n",
         r.energy,
         r.tdp_kw,
-        r.pi.amount()
+        r.pi.amount(),
+        format_pue(r.pue.get())
     ));
     out.push_str(&format!(
         "  r                       {} / year\n",
@@ -373,6 +394,7 @@ struct JsonReport<'a> {
     energy: UsdPerGpuHour,
     tdp_kw: f64,
     pi: UsdPerKwh,
+    pue: Pue,
     discount: DiscountRate,
     f_capital: UsdPerGpuHour,
     inverses: NamedInverses,
@@ -415,7 +437,7 @@ fn render_json(r: JsonReport<'_>) -> Result<String> {
                 "tdp_kw": r.tdp_kw,
                 "hours": 1.0,
                 "usd_per_kwh": r.pi.amount().to_string(),
-                "pue": 1.0,
+                "pue": r.pue.get(),
             },
             "discount_rate": r.discount.amount().to_string(),
             "capital_rent_usd_per_gpu_hour": json_rate(r.f_capital),
