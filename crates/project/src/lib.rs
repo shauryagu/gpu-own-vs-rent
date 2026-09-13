@@ -2,7 +2,7 @@
 
 mod cost_stack;
 
-pub use cost_stack::{CostStack, CostStackRow, NamedEnergy};
+pub use cost_stack::{default_pue_grid, CostStack, CostStackRow, NamedEnergy};
 
 use domain::{
     implied_salvage, leftover, IdentityError, ObservedSpot, ThetaExResidual, Usd, UsdPerGpuHour,

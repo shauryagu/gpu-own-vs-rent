@@ -2,7 +2,7 @@ use domain::{
     capital_rent, DiscountRate, GpuModel, Kilowatt, ObservedSpot, Pue, SpotSeries, ThetaExResidual,
     Usd, UsdPerGpuHour, UsdPerKwh, Utilization, ValidOn, Years,
 };
-use project::{CostStack, NamedEnergy};
+use project::{default_pue_grid, CostStack, NamedEnergy};
 use rust_decimal::Decimal;
 use time::{Date, Month};
 
@@ -87,4 +87,36 @@ fn cost_stack_source_has_no_salvage_or_implied_residual() {
     for needle in ["implied_salvage", "implied residual", "salvage"] {
         assert!(!src.contains(needle), "CostStack must not mention {needle}");
     }
+}
+
+#[test]
+fn default_pue_grid_is_one_point_two_one_point_five_in_order() {
+    let grid = default_pue_grid();
+    assert_eq!(grid.map(|p| p.get()), [1.0, 1.2, 1.5]);
+}
+
+#[test]
+fn default_grid_compute_three_rows_capital_equal_leftover_falls() {
+    let tdp = Kilowatt::try_new(0.7).unwrap();
+    let grid = default_pue_grid();
+    let stack = CostStack::compute(teaching_spot(), teaching_ex(), tdp, named_pi(10), &grid)
+        .expect("stack");
+    assert_eq!(stack.rows.len(), 3);
+    assert_eq!(stack.rows[0].pue.get(), 1.0);
+    assert_eq!(stack.rows[1].pue.get(), 1.2);
+    assert_eq!(stack.rows[2].pue.get(), 1.5);
+    assert_eq!(stack.rows[0].capital, stack.rows[1].capital);
+    assert_eq!(stack.rows[1].capital, stack.rows[2].capital);
+    assert!(stack.rows[0].leftover.amount() > stack.rows[1].leftover.amount());
+    assert!(stack.rows[1].leftover.amount() > stack.rows[2].leftover.amount());
+}
+
+#[test]
+fn single_pue_slice_still_yields_one_row() {
+    let tdp = Kilowatt::try_new(0.7).unwrap();
+    let pues = [Pue::try_new(1.0).unwrap()];
+    let stack = CostStack::compute(teaching_spot(), teaching_ex(), tdp, named_pi(10), &pues)
+        .expect("stack");
+    assert_eq!(stack.rows.len(), 1);
+    assert_eq!(stack.rows[0].pue.get(), 1.0);
 }

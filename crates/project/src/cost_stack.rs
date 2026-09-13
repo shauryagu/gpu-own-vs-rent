@@ -6,6 +6,15 @@ use domain::{
 };
 use rust_decimal::Decimal;
 
+/// Locked Gate 3 PUE sweep: 1.0, 1.2, 1.5. Caller passes this into `CostStack::compute`.
+pub fn default_pue_grid() -> [Pue; 3] {
+    [
+        Pue::try_new(1.0).expect("1.0 is a valid PUE"),
+        Pue::try_new(1.2).expect("1.2 is a valid PUE"),
+        Pue::try_new(1.5).expect("1.5 is a valid PUE"),
+    ]
+}
+
 /// Named electricity price. Amount is USD/kWh (already converted from LMP).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NamedEnergy {
