@@ -1,8 +1,9 @@
-# Status (through Gate 2)
+# Status (through Gate 3)
 
 What the code does after workspace scaffold (PR 1), hourly collector (PR 2),
 domain newtypes (PR 3), NPV identity (PR 4), daily-index / Epoch ingest (PR 5),
-invert CLI (PR 6), and Gate 2 fixture log + `chi replay`. On `main` at
+invert CLI (PR 6), Gate 2 fixture log + `chi replay`, and Gate 3 cost-stack
+panel + named LMP + `chi stack`. On `main` at
 [github.com/shauryagu/gpu-own-vs-rent](https://github.com/shauryagu/gpu-own-vs-rent).
 Binary: `chi`.
 
@@ -42,11 +43,13 @@ about the hardware stock.
 | Free public data only | A 401 on a “free” path is a bug, not a key. |
 | Half-life never estimated | Not an MVP parameter. |
 | Discrete annual NPV, \(H=8760\) | No root finder. |
-| Energy \(\pi=0\), PUE \(=1.0\) | Product \(e\) is still evaluated. |
+| Invert may omit \(\pi\) (leftover then includes power) | Teaching invert still evaluates product \(e\); omit ⇒ \(\pi=0\). |
+| `chi stack` requires named \(\pi\) | LMP fixture **or** `--energy-usd-per-kwh` + `--energy-source`. Default PUE grid 1.0, 1.2, 1.5. |
 | Do not implement `docs/project-plan.md` | Seed reservation simulator. Out of scope. |
 
 Architecture: `chi` → `ingest` + `project` → `domain`. `chi` → `chi_log` for
-`replay` only. `domain` has no I/O. One MVP trait: `ingest::HttpGet`. Blocking
+`replay` only. `project` owns `NamedInverses` and Gate 3 `CostStack`.
+`domain` has no I/O. One MVP trait: `ingest::HttpGet`. Blocking
 `reqwest`, 15 s. Money is `Decimal`; `f64` is physics. Three serde scales:
 ingest **source token**, domain **display** (USD 2, USD/GPU-hour 4), invert
 JSON **`round_dp(12)`** on computed money. \(S\) in invert JSON is the source
@@ -58,22 +61,23 @@ token.
 
 | Command | Behavior |
 |---|---|
-| `chi --help` | `collect`, `invert`, `replay`. |
+| `chi --help` | `collect`, `invert`, `replay`, `stack`. |
 | `chi collect` / `--series current` | Free-list + per-GPU current. Raw envelopes + `ocpi.hourly.v1` JSONL. |
 | `chi collect --series daily` | Raw daily-index / all / history. No hourly JSONL. |
 | `chi collect --series epoch` | Epoch `ml_hardware.csv` under `data/raw/epoch/`. |
-| `chi invert` | Frozen `{fixture_dir}/ocpi/daily-index/{slug}.json`. Required `--purchase-cents --life-years --utilization --discount-rate`. Always prints \(L\) and \(R^{\star}\). \(F(\theta)\) only with `--residual-cents`. Accounting overlay \(T=6,R=0\). No HTTP, no `--data-dir`. Does not read the event log. |
+| `chi invert` | Frozen `{fixture_dir}/ocpi/daily-index/{slug}.json`. Required `--purchase-cents --life-years --utilization --discount-rate`. Always prints \(L\) and \(R^{\star}\). \(F(\theta)\) only with `--residual-cents`. Accounting overlay \(T=6,R=0\). Omit \(\pi\) ⇒ leftover includes power. Optional single `--pue`. No HTTP, no `--data-dir`. Does not read the event log. |
+| `chi stack` | Same daily-index \(S\) and declared \(P,T,u,r\). Named \(\pi\) required (`--lmp-fixture` **or** `--energy-usd-per-kwh` + `--energy-source`). PUE omit ⇒ grid 1.0, 1.2, 1.5; `--pue` repeatable replaces the grid. Prints \(S = F_{\mathrm{capital}} + e + L\) per row. Leftover after energy; no salvage in the panel. No HTTP. |
 | `chi replay` | `--log-dir` required; `--format json`. Folds `events.jsonl` + `cas/{sha256}` to ingest catalog on stdout. Fixture series is `ocpi.current`. No HTTP. |
 
-Teaching H100 (`--gpu "H100 SXM" --fixture-dir fixtures --purchase-cents 2500000 --life-years 5 --utilization 0.60 --discount-rate 0.10`): \(S=2.879583333333333\), \(L\approx 1.6248\), \(R^{\star}\approx -52138\). Goldens are binary stdout, not the design sample.
+Teaching H100 invert (`--gpu "H100 SXM" --fixture-dir fixtures --purchase-cents 2500000 --life-years 5 --utilization 0.60 --discount-rate 0.10`): \(S=2.879583333333333\), \(L\approx 1.6248\), \(R^{\star}\approx -52138\). Goldens are binary stdout, not the design sample. `--purchase-cents 2500000` is \$25,000 teaching capital, not a product default.
 
 **Not here:** dual-write from collect, invert reading `chi_log`, SQLite, server, UI, \(\Theta\) sweep.
 
 launchd: `scripts/ocpi-hourly.plist` + `scripts/install-ocpi-hourly.sh`.
 Install on the **main** checkout’s `target/release/chi`, not a worktree.
 
-Optional Docker one-shots (same CLI; teaching invert flags declared in Compose,
-not product defaults): `docker compose -f art/compose.yaml run --rm invert|replay|collect`.
+Optional Docker one-shots (same CLI; teaching flags declared in Compose,
+not product defaults): `docker compose -f art/compose.yaml run --rm invert|stack|replay|collect`.
 
 ---
 
@@ -81,40 +85,48 @@ not product defaults): `docker compose -f art/compose.yaml run --rm invert|repla
 
 ```
 chi (binary)  -->  ingest  -->  domain
-              -->  project -->  domain
+              -->  project -->  domain   # NamedInverses, CostStack
               -->  chi_log     # replay only
 ```
 
 | Path | Role |
 |---|---|
-| `crates/chi/src/main.rs` | `Cmd { Collect, Invert, Replay }`. |
+| `crates/chi/src/main.rs` | `Cmd { Collect, Invert, Replay, Stack }`. |
 | `crates/chi/src/collect.rs` | `--data-dir`, `--series`. Injects `now_utc()`, `LiveHttp`. |
 | `crates/chi/src/invert.rs` | Daily-index wrapper → leftover + implied salvage; optional fair rent. |
+| `crates/chi/src/stack.rs` | Cost-stack panel at named \(\pi\); default or declared PUE grid. |
 | `crates/chi/src/replay.rs` | `--log-dir` → `chi_log` fold → catalog bytes on stdout. |
 | `crates/chi/tests/invert_fixture.rs` | Seven CLI tests + binary goldens. |
+| `crates/chi/tests/stack_cli.rs`, `stack_fixture.rs` | Stack energy identity + fixture panel tests. |
 | `crates/chi/tests/replay_cli.rs` | `--help` + golden catalog from committed `fixtures/log/v1`. |
 | `crates/chi/tests/replay_fixture.rs` | Copy-to-temp process-boundary tests (decoy raw, CAS, unknown tag). |
 | `crates/chi_log/` | `Event`, CAS open-by-hash, JSONL read, fold to ingest catalog. |
-| `crates/project/src/lib.rs` | Thin `NamedInverses { leftover, implied_salvage }`. Algebra stays in `domain`. |
+| `crates/project/src/lib.rs` | `NamedInverses` + Gate 3 `CostStack` / `NamedEnergy` / `default_pue_grid`. Algebra stays in `domain`. |
+| `crates/project/src/cost_stack.rs` | \(S = F_{\mathrm{capital}} + e + L\) rows at named \(\pi\) and PUE. |
 | `crates/domain/src/identity.rs` | `capital_rent`, `fair_rent`, `leftover`, `implied_salvage`. |
 | `crates/ingest/src/ocpi_daily.rs` | Wrapper → `ObservedSpot` (`OcpiDailyIndex` only). |
+| `crates/ingest/src/lmp.rs` | Named LMP wrapper → USD/MWh token → USD/kWh. |
 | `crates/ingest/src/epoch.rs` | H100 → `NVIDIA H100 SXM5 80GB` TDP 700 W. Release price is annotation. |
-| `fixtures/ocpi/daily-index/H100_SXM.json` | Invert \(S\). |
+| `fixtures/ocpi/daily-index/H100_SXM.json` | Invert / stack \(S\). |
 | `fixtures/ocpi/daily-index/A100_SXM4.json`, `RTX_5090.json` | Synthetic wrappers so Epoch fail-closed is reachable. Not teaching \(S\). |
+| `fixtures/energy/lmp/pjm_rto.json` | Teaching named \(\pi\) (PJM RTO, token `49.24` USD/MWh). |
 | `fixtures/log/v1/` | Replay fixture: `events.jsonl`, `cas/{sha256}`, golden `catalog.json`. |
-| `art/Dockerfile`, `art/entrypoint.sh`, `art/compose.yaml` | Optional image; Compose one-shots for invert / replay / collect. |
+| `art/Dockerfile`, `art/entrypoint.sh`, `art/compose.yaml` | Optional image; Compose one-shots for invert / stack / replay / collect. |
 
-Invert does not open `daily-index-all`, `daily-history`, `current`, or `data/`.
+Invert and stack do not open `daily-index-all`, `daily-history`, `current`, or `data/`.
+Replay is hourly current, not invert \(S\).
 
 ---
 
 ## 5. Next
 
-Gate 2 (fixture event log + `chi replay`) is done. Collect still writes files,
-not events. Invert still does not read the log. Dual-write, `--as-of`, and
-invert-from-log are later.
+Gate 3 (cost-stack panel, named LMP, PUE grid, `chi stack`) is done. Collect
+still writes files, not events. Invert still does not read the log. Dual-write,
+`--as-of`, and invert-from-log are later.
 
-Do not start Gate 3–10 or the seed simulator from this snapshot.
+Next product work is Gate 4 (\(\Theta_L(S)\) / \(\Theta_{R^{\star}}(S)\) surfaces
+in `project`), not more Gate 3. Do not start the seed simulator from this
+snapshot.
 
 ```bash
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -122,4 +134,7 @@ cargo test --workspace
 cargo run -p chi -- invert --gpu "H100 SXM" --fixture-dir fixtures \
   --purchase-cents 2500000 --life-years 5 --utilization 0.60 \
   --discount-rate 0.10 --format text
+cargo run -p chi -- stack --gpu "H100 SXM" --fixture-dir fixtures \
+  --purchase-cents 2500000 --life-years 5 --utilization 0.60 \
+  --discount-rate 0.10 --lmp-fixture fixtures/energy/lmp/pjm_rto.json
 ```

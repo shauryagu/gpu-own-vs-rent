@@ -1,9 +1,12 @@
 # One-shot jobs for the chi CLI. Not a daemon. Does not replace launchd.
-# Teaching invert flags are the H100 README example, not product defaults.
+# Teaching invert/stack flags are the H100 README example, not product defaults.
+# --purchase-cents 2500000 is $25,000 teaching capital, not a product default.
 # Invert still requires --purchase-cents --life-years --utilization --discount-rate.
+# Stack requires those plus named π (--lmp-fixture here; fixtures live at /app/fixtures).
 #
 # From the repo root:
 #   docker compose -f art/compose.yaml run --rm invert
+#   docker compose -f art/compose.yaml run --rm stack
 #   docker compose -f art/compose.yaml run --rm replay
 #   mkdir -p data && docker compose -f art/compose.yaml run --rm collect
 
@@ -24,13 +27,32 @@ services:
       - --fixture-dir
       - /app/fixtures
       - --purchase-cents
-      - "2500000"
+      - "2500000" # $25,000 teaching example, not a product default
       - --life-years
       - "5"
       - --utilization
       - "0.60"
       - --discount-rate
       - "0.10"
+
+  stack:
+    <<: *chi
+    command:
+      - stack
+      - --gpu
+      - H100 SXM
+      - --fixture-dir
+      - /app/fixtures
+      - --purchase-cents
+      - "2500000" # $25,000 teaching example, not a product default
+      - --life-years
+      - "5"
+      - --utilization
+      - "0.60"
+      - --discount-rate
+      - "0.10"
+      - --lmp-fixture
+      - /app/fixtures/energy/lmp/pjm_rto.json
 
   replay:
     <<: *chi

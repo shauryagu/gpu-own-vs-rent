@@ -40,7 +40,7 @@ no purchased history, no private venue data. Unknowns are declared or swept
 
 ```
 chi (binary)  -->  ingest  -->  domain
-              -->  project -->  domain
+              -->  project -->  domain   # NamedInverses, CostStack (chi stack)
               -->  chi_log     # replay only
 ```
 

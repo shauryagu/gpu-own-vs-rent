@@ -1,4 +1,4 @@
-# Open questions (through Gate 2)
+# Open questions (through Gate 3)
 
 Binding resolutions live in
 [`designs/2026-08-22-gate-0-1-mvp.md`](designs/2026-08-22-gate-0-1-mvp.md).
@@ -7,11 +7,14 @@ What the code does: [`status.md`](status.md). Names: [`vocab.md`](vocab.md).
 Do not invent \(P\), \(r\), primary \(T\), or primary \(u\). Do not collapse
 leftover \(L\) and salvage \(R^{\star}\). Do not add a paid Ornn key.
 
-**Code after Gate 2.** `collect --series current|daily|epoch` writes raw bodies.
+**Code after Gate 3.** `collect --series current|daily|epoch` writes raw bodies.
 `chi invert` on frozen daily-index fixtures prints \(L\) and \(R^{\star}\);
-\(F(\theta)\) only with `--residual-cents`. `chi replay` folds a fixture log
+\(F(\theta)\) only with `--residual-cents`. Omit \(\pi\) on invert ⇒ leftover
+includes power. `chi stack` requires named \(\pi\) (LMP fixture or manual
+source) and prints \(S = F_{\mathrm{capital}} + e + L\) on the default PUE
+grid 1.0 / 1.2 / 1.5 (or declared `--pue`). `chi replay` folds a fixture log
 to an ingest catalog (`ocpi.current`). Collect stays file-based. Invert does
-not read the log.
+not read the log. Replay is hourly current, not invert \(S\).
 
 | Status | Meaning |
 |---|---|
@@ -21,7 +24,7 @@ not read the log.
 
 ---
 
-## Closed in Gates 0–2
+## Closed in Gates 0–3
 
 | Item | Status |
 |---|---|
@@ -36,10 +39,14 @@ not read the log.
 | Required `--purchase-cents --life-years --utilization --discount-rate` | closed — PR 6 |
 | \(S\) JSON is source token; computed money `round_dp(12)` | closed — PR 6 (energy JSON still Display `"0"` — nit, not a new question) |
 | Invert prints `valid_on` and wrapper `fetched_at`; no `--as-of` | closed — print; query is Gate 6 |
-| Half-life never estimated; \(H=8760\); \(\pi=0\); PUE \(=1.0\) | closed |
+| Half-life never estimated; \(H=8760\); invert omit \(\pi\) ⇒ leftover includes power | closed |
 | R1–R4 / `docs/project-plan.md` stay out | closed |
 | No paid Ornn key on collect | closed |
 | Event log + `chi replay` twice → byte-identical ingest catalog (`ocpi.current`). Collect file-based. Invert does not read the log. | closed — Gate 2 |
+| Cost-stack *panel* \(S = F_{\mathrm{capital}} + e + L\); `project::CostStack`; `chi stack` | closed — Gate 3 |
+| Named \(\pi\): PJM RTO LMP fixture **or** manual USD/kWh + source; stack fails closed without it | closed — Gate 3 |
+| Default PUE grid 1.0, 1.2, 1.5; repeatable `--pue` replaces the grid | closed — Gate 3 |
+| Accounting overlay useful life **6 years** cites CoreWeave FY 2025 10-K (CIK 0001769628, filed 2026-03-02) — docs only; code overlay stays labeled \(T=6,R=0\) | closed — Gate 3 docs |
 
 ---
 
@@ -67,7 +74,6 @@ still matches the fixture names when this machine is the collector.
 
 | Gate | What |
 |---|---|
-| **3** | Cost-stack *panel*; PUE sweep; named LMP. Leftover \(L\) already exists. No PJM in this repo yet. |
 | **4** | \(\Theta_L(S)\) and \(\Theta_{R^{\star}}(S)\) as two surfaces in `project`. |
 | **5** | H100e maps beyond identity. No OLS on five GPUs. |
 | **6** | `chi invert --as-of`. `AsOf` exists and is unused. |
@@ -83,4 +89,4 @@ exist; we will not invent the dollars.
 | When | Blocks |
 |---|---|
 | First live collect + launchd | Missed hours, free-list, no key in plist |
-| Gate 3 / 4 / 5 / 6+ | Deferred table |
+| Gate 4 / 5 / 6+ | Deferred table |
