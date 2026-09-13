@@ -40,9 +40,31 @@ fn wrapper_keeps_mwh_source_token_and_converts_per_kwh() {
 }
 
 #[test]
+fn json_number_token_is_exact_and_not_the_teaching_print() {
+    let record = ingest::lmp::parse_lmp_wrapper(
+        br#"{
+          "fetched_at": "2026-09-10T12:00:00.000Z",
+          "source_url": "https://www.pjm.com/markets-and-operations.aspx",
+          "body": {
+            "iso": "PJM",
+            "node": "WESTERN HUB",
+            "unit": "USD/MWh",
+            "lmp_usd_per_mwh": 33.17,
+            "valid_on": "2026-09-10"
+          }
+        }"#,
+    )
+    .expect("json number");
+    assert_eq!(record.lmp_usd_per_mwh, "33.17");
+    assert_ne!(record.lmp_usd_per_mwh, "49.24");
+    assert_eq!(record.usd_per_kwh.amount(), dec("0.03317"));
+}
+
+#[test]
 fn mwh_divided_by_thousand_is_usd_per_kwh() {
-    let pi = ingest::lmp::usd_per_kwh_from_mwh("49.24").expect("convert");
-    assert_eq!(pi.amount(), dec("0.04924"));
+    let pi = ingest::lmp::usd_per_kwh_from_mwh("33.17").expect("convert");
+    assert_eq!(pi.amount(), dec("0.03317"));
+    assert_ne!(pi.amount(), dec("0.04924"));
 }
 
 #[test]
@@ -81,4 +103,22 @@ fn rejects_missing_lmp_token() {
     )
     .expect_err("missing");
     assert!(err.to_string().contains("lmp_usd_per_mwh"), "{err}");
+}
+
+#[test]
+fn rejects_missing_valid_on() {
+    let err = ingest::lmp::parse_lmp_wrapper(
+        br#"{
+          "fetched_at": "2026-09-10T12:00:00.000Z",
+          "source_url": "https://www.pjm.com/markets-and-operations.aspx",
+          "body": {
+            "iso": "PJM",
+            "node": "RTO",
+            "unit": "USD/MWh",
+            "lmp_usd_per_mwh": "49.24"
+          }
+        }"#,
+    )
+    .expect_err("missing valid_on");
+    assert!(err.to_string().contains("valid_on"), "{err}");
 }
